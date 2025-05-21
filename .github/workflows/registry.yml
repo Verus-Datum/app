@@ -17,6 +17,7 @@ jobs:
         wth:
           fetch-depth: 0        # need all commits
           fetch-tags: true      # need existing 0.0.* tags
+          token: ${{ secrets.PAT_TOKEN }}
 
       - name: Bump patch version
         id: bump
@@ -31,8 +32,6 @@ jobs:
           fi
           echo "IMAGE_TAG=$NEXT" >> $GITHUB_ENV
 
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag "$NEXT"
           git push origin "$NEXT"
 
