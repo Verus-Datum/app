@@ -51,3 +51,10 @@ jobs:
       - name: Push Images
         run: docker compose push
 
+      - name: Retag & push latest from versioned
+        run: |
+          for svc in api gui db; do
+            docker tag ghcr.io/verus-datum/${svc}:${IMAGE_TAG} \
+                       ghcr.io/verus-datum/${svc}:latest
+            docker push ghcr.io/verus-datum/${svc}:latest
+          done
