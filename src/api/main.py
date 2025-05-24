@@ -1,49 +1,27 @@
-import os
-
-from fastapi import FastAPI, status, Depends, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, APIRouter, status
+from sqlalchemy import text
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker
+
+from src.api.routers import health, users, listings
+from src.api.cors import API_URL, configure_cors
+from src.api.db import get_db, engine
+
+from sqlalchemy.orm import Session
+
+from src.api.db import get_db
+from src.api.models import User, Listing, Base
+Base.metadata.create_all(bind=engine)
+
+from src.api.schemas import UserCreate, UserResponse
 
 app = FastAPI(
-    root_path="/api",
+    root_path="/" if "https" not in API_URL else "/api",
 )
+configure_cors(app)
 
-API_URL = os.environ.get("VITE_API_URL")
-DATABASE_URL = os.environ.get("DATABASE_URL")
-
-engine = create_engine(DATABASE_URL, echo=True)
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-print(f"{API_URL=}")
-if "https" not in API_URL:
-    # Production sets CORS in nginx, so we wouldnt set it here again.
-    print("\nConfiguring CORS\n")
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
+app.include_router(users.router, prefix="/users")   
+app.include_router(listings.router, prefix="/listings")   
 
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
-
-
-@app.get("/health/db")
-def health_check(db=Depends(get_db)):
-    try:
-        result = db.execute(text("SELECT 1")).scalar()
-        return {"db_alive": True, "result": result}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"DB error: {e}")
